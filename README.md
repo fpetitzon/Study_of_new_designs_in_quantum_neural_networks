@@ -1,7 +1,6 @@
 # Study of new designs in quantum neural networks
 
-This repository contains code necessary to reproduce the figures and simulation results of the paper "Study of new designs in quantum neural networks" by Felix Petitzon.
-TODO: link arxiv
+This repository contains code necessary to reproduce the figures and simulation results of the paper "New designs in quantum neural networks" by Felix Petitzon. Link ArXiv: https://arxiv.org/abs/2203.07872
 
 Compared are:
 - classical deep neural network
@@ -11,6 +10,7 @@ Compared are:
 - same but with classical net appended
 
 
-The classes folder contains all needed classes and utility functions
+The classes folder contains all needed classes and utility functions.
+
 The jupyter notebooks fit the models to the data; and produce the plots of the paper.
 
