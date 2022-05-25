@@ -77,6 +77,7 @@ def train_on_dl(model, train_loader, test_dl=None, epochs=100, optimizer=None,
         if verbose == 1:
             print("training loss for epoch ", epoch, " is :", loss_list_val[-1])
         if test_dl is not None:
+            print("test_dl_is_not None")
             model.eval()
             val_loss, val_accuracy = eval_on_dataloader(model, test_dl, loss_obj)
             loss_list_val.append(val_loss)
@@ -110,8 +111,10 @@ def compute_loss(model, dataloader, loss_obj=T.nn.BCELoss()):
     total_loss = 0
     for i, (inputs, targets) in enumerate(dataloader):
         if isinstance(model, Qnn):
-            output = T.tensor(model.predict(inputs))
+            print("Using backend")
+            output = T.tensor(model.predict_with_backend(inputs))
         else:
+            print("Not Using backend")
             output = model(inputs)
         target = T.reshape(targets, [1, -1])
         output = T.reshape(output, [1, -1])
@@ -123,7 +126,7 @@ def accuracy(model, dataloader):
     acc = 0
     for i, (inputs, targets) in enumerate(dataloader):
         if isinstance(model, Qnn):
-            output = T.tensor(model.predict(inputs))
+            output = T.tensor(model.predict_with_backend(inputs))
         else:
             output = model(inputs)
         output = T.reshape(output, [1, -1])

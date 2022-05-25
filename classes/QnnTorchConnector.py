@@ -8,8 +8,13 @@ import torch as T
 
 
 from qiskit import Aer, transpile, IBMQ
-processor = Aer.backends(name = 'qasm_simulator')[0]
+processor = Aer.backends(name = 'qasm_simulator', method="statevector")[0]
 
+try:
+    processor.set_options(devices='GPU')
+    print('GPU Acceleration Enabled')
+except AerError as e:
+    print("error = ",e)
 
 class ClassicalNet(T.nn.Module):
 
@@ -171,8 +176,12 @@ class Qnn:
 
         return results
 
-    def predict_with_backend(self, x_list, params, backend=processor, shots=20):  # _with_backend
+    def predict_with_backend(self, x_list, params=None, backend=processor, shots=20):  # _with_backend
         # predicts via backend, for example qasm_backend. Generally slower.
+
+        if params is None:
+            params = self.params
+
         qc_list = []
         for x in x_list:
             circ_ = self.circuit.assign_parameters(self.get_data_dict(params, x))
@@ -254,9 +263,9 @@ class QnnCircuitFunction(T.autograd.Function):
         ctx.shift = shift
         ctx.qnn = qnn
         ctx.weight = weight
-        result = ctx.qnn.predict(input, weight)
+        result = ctx.qnn.predict_with_backend(input, weight)
 
-        predictions = T.tensor([result])
+        predictions = T.tensor([np.array(result)])
         ctx.save_for_backward(input, predictions)
         return predictions
 
@@ -275,8 +284,8 @@ class QnnCircuitFunction(T.autograd.Function):
             direction[i] = 1
             shift_right = direction * ctx.shift
             shift_left = - direction * ctx.shift
-            expectation_right = ctx.qnn.predict(input, params=ctx.weight + shift_right)
-            expectation_left = ctx.qnn.predict(input, params=ctx.weight + shift_left)
+            expectation_right = ctx.qnn.predict_with_backend(input, params=ctx.weight + shift_right)
+            expectation_left = ctx.qnn.predict_with_backend(input, params=ctx.weight + shift_left)
             gradient = T.tensor([expectation_right]) - T.tensor([expectation_left])
             gradient *= grad_out.float()
             gradients.append(gradient)
