@@ -1,20 +1,58 @@
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, execute
 from qiskit.circuit.library import RealAmplitudes, ZFeatureMap, ZZFeatureMap
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 from qiskit.providers.aer import AerError
+from qiskit.providers.aer import AerSimulator
+from qiskit.providers.aer import QasmSimulator
+from qiskit.providers.aer.noise import NoiseModel
+from qiskit.test.mock import FakeManila
 import torch as T
 
-
 from qiskit import Aer, transpile, IBMQ
-processor = Aer.backends(name = 'qasm_simulator', method="statevector")[0]
 
-try:
-    processor.set_options(devices='GPU')
-    print('GPU Acceleration Enabled')
-except AerError as e:
-    print("error = ",e)
+processor = Aer.backends(name = 'qasm_simulator', method="statevector", )[0]
+
+API_TOKEN = '210fee10a48b26b8d09eacf5d8dc6c16b61380e6df4062640eb87aa59165cfd2e223e4775c8b2c17971e9cb44e0b1f835ed3544b27cf2c33406d08cc337baa83'
+IBMQ.save_account(API_TOKEN)
+provider = IBMQ.load_account()
+
+RUN_ON_QPU = True
+RUN_ON_GPU = False
+
+QPU_INSTANCE_NAME = 'ibmq_manila'
+
+if RUN_ON_GPU:
+    try:
+        processor.set_options(devices='GPU')
+        print('GPU Acceleration Enabled')
+    except AerError as e:
+        print("error = ",e)
+elif RUN_ON_QPU:
+    try:
+        backend = provider.get_backend(QPU_INSTANCE_NAME)
+        noise_model = NoiseModel.from_backend(backend)
+
+        coupling_map = backend.configuration().coupling_map
+        basis_gates = noise_model.basis_gates
+        processor = backend
+        print('QPU Enabled')
+    except:
+        print('QPU Error')
+else:
+    try:
+        backend = provider.get_backend(QPU_INSTANCE_NAME)
+        noise_model = NoiseModel.from_backend(backend)
+
+        coupling_map = backend.configuration().coupling_map
+        basis_gates = noise_model.basis_gates
+        processor = backend
+        print('QPU Enabled')
+    except:
+        print('QPU Error')
+
+
 
 class ClassicalNet(T.nn.Module):
 
@@ -98,12 +136,21 @@ def measure_one_qubit(counts, measuring_qubit=0):
     return result
 
 
-def run_circuit(circuit, backend, shots=20):
+""" def run_circuit(circuit, backend, shots=20):
     compiled_circuit = transpile(circuit, backend)
     job = backend.run(compiled_circuit, shots=shots)
     result = job.result()
     # counts = result.get_counts(compiled_circuit)
     counts = result.get_counts()
+    return counts """
+
+def run_circuit(circuit, backend, shots=20):
+    compiled_circuit = transpile(circuit, backend)
+    result = execute(compiled_circuit, Aer.get_backend('qasm_simulator'),
+                 coupling_map=coupling_map,
+                 basis_gates=basis_gates,
+                 noise_model=noise_model).result()
+    counts = result.get_counts(0)
     return counts
 
 
